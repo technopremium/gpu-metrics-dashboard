@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>My Website</title>
+    <style>
+        .container {
+            display: grid;
+            margin: 20px;
+            height: 1000px;
+            grid-template-rows: 130px 1fr 1fr;
+            grid-template-columns: 200px 1400px; 
+            row-gap: 5px;
+            column-gap: 5px;
+    }
+
+    .items {
+        background-color: #f5f5f5;
+        padding: 20px;
+        border-radius: 10px;
+    }
+
+    .nav {
+        display:flex;
+        justify-content:right;
+        align-items: center;
+    }
+    .left-nav {
+        display:flex;
+        justify-content: center;
+    }
+    </style>
+</head>
+
+<body>
+
+    
+    <div class="container">
+        <div ></div>
+        <div class="nav">
+            <input id="filename" type="text" name="filename">
+            <button id="export">Export</button>
+        </div>
+        <div class="left-nav">
+            <a href="/dashboard/">Dashboard</a>
+        </div>
+        <div class="items">
+            <canvas id="pChart" width="400" height="70"></canvas>
+            <canvas id="tChart" width="400" height="70"></canvas>
+            <canvas id="cChart" width="400" height="70"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <script>
+        window.onload = getData
+
+        var powerData = []
+        var powerLabels = [];
+
+        var temperatureData = []
+        var temperatureLabels = [];
+
+        var clockData = []
+        var clockLabels = [];
+        // Create an array of labels and data
+        
+            
+
+        //////////////////////////////// Chart for Power //////////////////////////////
+            var chartDataForPower = {
+                labels: powerLabels, // labels for the x-axis
+                datasets: [{
+                    label: "Power",
+                    data: powerData, // data for the y-axis
+                    borderColor: "#00bcd4",
+                    fill: false
+                }]
+            };
+
+            var ctx = document.getElementById("pChart").getContext("2d");
+            var powerChart = new Chart(ctx, {
+                type: "line",
+                data: chartDataForPower,
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: "time", // set the x-axis to a time scale
+                            time: {
+                                unit: "second"
+                            },
+                            position: "bottom"
+                        }]
+                    }
+                }
+            });
+        
+        ////////////////////////////////////////////////////////////////////////////
+
+        //////////////////////////////// Chart for Temperature //////////////////////////////
+            var chartDataForTemperature = {
+                labels: temperatureLabels, // labels for the x-axis
+                datasets: [{
+                    label: "Temperature",
+                    data: temperatureData, // data for the y-axis
+                    borderColor: "red",
+                    fill: false
+                }]
+            };
+
+            var ctx = document.getElementById("tChart").getContext("2d");
+            var temperatureChart = new Chart(ctx, {
+                type: "line",
+                data: chartDataForTemperature,
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: "time", // set the x-axis to a time scale
+                            time: {
+                                unit: "second"
+                            },
+                            position: "bottom"
+                        }]
+                    }
+                }
+            });
+        
+        ////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////// Chart for Clock //////////////////////////////
+            var chartDataForClock = {
+                labels: clockLabels, // labels for the x-axis
+                datasets: [{
+                    label: "Clock",
+                    data: clockData, // data for the y-axis
+                    borderColor: "green",
+                    fill: false
+                }]
+            };
+
+            var ctx = document.getElementById("cChart").getContext("2d");
+            var clockChart = new Chart(ctx, {
+                type: "line",
+                data: chartDataForClock,
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: "time", // set the x-axis to a time scale
+                            time: {
+                                unit: "second"
+                            },
+                            position: "bottom"
+                        }]
+                    }
+                }
+            });
+        
+        ////////////////////////////////////////////////////////////////////////////
+        function getData() {
+            fetch('http://b5c0-73-49-172-243.ngrok.io/gpu-info/')           //api for the get request
+            .then(response => response.json())
+            .then(data => addData(data));
+            
+            setTimeout(getData, 2000);
+        }
+        
+
+        function addData(data) { 
+
+            var date = new Date();
+            var hour = date.getHours();
+            var minute = date.getMinutes();
+            var second = date.getSeconds();
+
+            var currentTime = `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`
+            
+            powerChart.data.labels.push(currentTime)
+            temperatureChart.data.labels.push(currentTime)
+            clockChart.data.labels.push(currentTime)
+
+
+            powerChart.data.datasets.forEach((dataset) => {
+                dataset.data.push(data.power);
+            });
+
+            temperatureChart.data.datasets.forEach((dataset) => {
+                dataset.data.push(data.temperature);
+            });
+            
+            clockChart.data.datasets.forEach((dataset) => {
+                dataset.data.push(data.clock);
+            });
+
+
+
+            powerChart.update();
+            temperatureChart.update();
+            clockChart.update();
+        }
+
+        document.getElementById('export').onclick = function(){
+            filename = document.getElementById("filename").value;
+            const time = powerLabels
+            const power = powerData
+            const temperature = temperatureData
+            const clock = clockData
+
+            // Zip the lists together to get an array of arrays
+            const data = [['time', 'Power', 'Temperature', 'Clock'], ...time.map((t, i) => [t, power[i], temperature[i], clock[i]])]
+
+            // Convert the data to a CSV string
+            const csv = data.map(row => row.join(',')).join('\n')
+
+            // Create a link to download the CSV file
+            const link = document.createElement('a')
+            link.download = filename+'.csv'
+            link.href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`
+
+            // Click the link to download the file
+            link.click()
+        }
+    </script>
+</body>
+
+</html>
